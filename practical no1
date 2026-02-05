@@ -1,0 +1,102 @@
+write x86/64 ALP
+
+section.data
+
+msg1 db 10,13, 'enter 5 64 bit number' len1 equ $-msg1; Declare msg1
+
+msg2 db 10,13, 'enter 64 bit numbers' len2 equ $-msg2; decalre msg2
+
+section .bss
+
+array resd 200
+
+counter resb 1
+
+section.text
+
+global_start
+
+_start:
+
+;display
+
+MOV RAX, 1 ; write
+
+MOV RDi, 1 ; standard output
+
+MOV RSi,msg1
+
+MOV RDX, len1
+
+syscall
+
+; accept
+
+MOV byte [counter], 05
+
+MOV rbx,00
+
+loop1: ; declare loop
+
+MOV rax,0; read
+
+MOV rdi,0; keyboard
+
+MOV rsi, array
+
+add rsi, rbx
+
+MOV rdx, rbx
+
+MOV rdx, 17
+
+syscall
+
+add rbx, 17
+
+dec byte[counter]
+
+JNZ loop1
+;display
+
+MOV RAX, 1
+
+MOV RDi, 1
+
+MOV RSi,msg2
+
+MOV Rdx, len2
+
+syscall
+
+MOV byte [counter],05
+
+MOV rbx,00
+
+loop2:
+
+MOV rax, 1 ;write
+
+MOV rdi, 1; monitor
+
+MOV rsi, array
+
+add rsi, rbx
+
+MOV rdx, 17
+
+syscall
+
+add rbx,17
+
+dec byte[counter]
+
+JNZ loop2
+
+; exist system call
+
+MOV RAX, 60
+
+MOV rdi,0
+
+syscall
