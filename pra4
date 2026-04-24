@@ -1,0 +1,101 @@
+; X86-64 ALP: Multiplication using Successive Addition
+; Accepts two 8-bit HEX numbers and prints result
+%macro IO 4
+ mov rax, %1 ;System call number
+ mov rdi, %2 ;file descriptor
+ mov rsi, %3 ;address of data
+ mov rdx, %4 ;length
+ syscall
+%endmacro
+section .data
+ m1 db "Enter X (2 hex digits): "
+ l1 equ $-m1
+ m2 db 10,"Enter Y (2 hex digits): "
+ l2 equ $-m2
+ msg db 10,"Result: "
+ l3 equ $-msg
+ nl db 10
+section .bss
+ numascii resb 3 ; stores input characters(2 digits+ enter)
+ num1 resb 1 ;stores binary values of hex numbers
+ num2 resb 1
+ result resb 2 ; stores multiplication result(16 bit)
+ dispbuff resb 4 ; for displaying 4 hex digits
+section .text ;program entry print
+global _start
+_start:
+; -------- INPUT X --------
+ IO 1,1,m1,l1 ;input 1st number
+ IO 0,0,numascii,3 ; reading input string from
+ call fetchInput ; convert hex ASCII to binary
+ mov [num1], bl ; and store in num1
+
+; -------- INPUT Y --------
+ IO 1,1,m2,l2 ; input 2nd number
+ IO 0,0,numascii,3 ; reading input string from keyboard
+ call fetchInput ; convert hex ASCII
+ mov [num2], bl ; store converted binary num in num2
+; -------- MULTIPLICATION (SUCCESSIVE ADD) --------
+ call successiveAdd
+; -------- DISPLAY RESULT --------
+ IO 1,1,msg,l3 ; print "Resutl:"
+ mov bx, [result] ;convert result to ASCII hex
+ call print
+ IO 1,1,nl,1 ; print new line
+; -------- EXIT --------
+mov rax,60 ;exit system call
+ xor rdi,rdi ;mov rdi
+ syscall
+; =====================================
+; SUCCESSIVE ADDITION SUBROUTINE
+; result = num1 added num2 times
+; =====================================
+successiveAdd:
+ mov cl, [num2] ; multiplier
+ mov al, [num1] ; multiplicand
+ xor bx, bx ; result = 0
+add_loop:
+ add bx, ax ;add num1 to result
+ dec cl ; decrement counter(cl)
+ jnz add_loop ; repeat until cl=0
+ mov [result], bx ; store product (bx) into result
+ret
+; =====================================
+; FETCH HEX INPUT (2 DIGITS)
+; =====================================
+fetchInput:
+ xor bl, bl
+ mov ecx, 2 ; prepare to read 2 digit
+ mov rsi, num
+next_digit:
+ rol bl, 4
+ mov al, [rsi] ; read ASCII digit
+ cmp al, '9'
+ jbe digit
+ sub al, 7 ; adjust for A-F hex digits
+digit:
+ sub al, '0' ; convert ASCII to number
+ add bl, al ; add digit into bl
+ inc rsi ; moving to next digit
+ loop next_digit
+ret
+; =====================================
+; PRINT 16-BIT HEX NUMBER
+; =====================================
+print:
+ mov ecx, 4 ;4 hex digit
+ mov rdi, dispbuff
+print_loop:
+ rol bx, 4
+mov al, bl
+ and al, 0Fh
+ cmp al, 9
+ jbe ok
+ add al, 7
+ok:
+ add al, '0' ;convert number to ASCII
+ mov [rdi], al ; store digit and repeat
+ inc rdi
+ loop print_loop
+ IO 1,1,dispbuff,4 ; print final hex number
+Ret
