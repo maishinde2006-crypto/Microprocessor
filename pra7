@@ -1,0 +1,85 @@
+;Write X86/64 ALP to convert 4-digit Hex number into its equivalent BCD
+number
+;X86/64 ALP for 4-digit HEX to BCD conversion
+section .data
+ msg1 db "Enter 4-digit Hex number:", 0
+ len1 equ $ - msg1
+ msg2 db 10, "Equivalent BCD number: ", 0
+ len2 equ $ - msg2
+ newline db 10
+section .bss
+ num resb 17 ; To store input hex (e.g. FFFF)
+ bcd resb 10 ; To store BCD result after conversion
+
+%macro scall 4
+ mov rax, %1 ; system call number
+ mov rdi, %2 ; file descriptor
+ mov rsi, %3 ; buffer address
+ mov rdx, %4 ; length
+ syscall
+%endmacro
+section .text
+ global _start
+
+_start:
+ ; Display message
+
+ scall 1, 1, msg1, len1
+
+ ;Accept 4-digit hex number
+
+ scall 0, 0, num, 5 ; read from stdin and characters +enter
+;convert hex to BCD
+ mov rax,rbx ;move hex number to RAX for division
+ mov rbx, 10 ;divisor
+ mov rdi, bcd ; result pointer
+
+ ; division loop for BCD
+
+ mov rcx, 0
+loop_bcd:
+ mov rdx, 0
+ div rbx
+ push rdx ;store remainder (digit in reverse)
+
+ inc rcx
+ cmp rax, 0
+ jne loop_bcd
+
+ ; pop remainder and convert to ASCII
+display_bcd:
+ pop rdx
+ add dl, 30h ; convert to ASCII
+ mov [rdi],dl ; store digit present in DL into BCD Buffer
+ inc rdi ; move pointer
+ loop display_bcd 
+;print result
+ scall 1, 1, msg2, len2
+ scall 1, 1, bcd, 5 ; print BCD
+
+ ;Exit
+ mov rax, 60
+ xor rdi, rdi ; or mov rdi, 0
+ syscall
+
+ascii_to_hex:
+ mov rsi,num ; move num(input string)to rsi
+ mov rbx, 0 ; clear rbx register for result
+ mov rcx, 4 ; 4 hex digit
+
+loop_hex:
+ rol rbx,4 ; rotate left by 4 bits(i.e. mutiply by 16)
+ mov al,[rsi] ; load one ascii character
+ cmp al, 39h ; 39H
+ jbe skip
+ sub al, 07h ; convert ASCII to numeric
+skip:
+ sub al, 30h
+ add bl, al ; add digit into result
+ inc rsi
+ loop loop_hex ; repeat for 4 digit
+ ret
+
+
+ ;convert ASCII hex to actual hex in rbx
+ call ascii_to_hex
