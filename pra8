@@ -1,0 +1,108 @@
+; Name: Bhakti shinde
+; Roll No: CO2191
+; Write X86/64 ALP to convert 5-digit BCD number into its equivalent Hex
+number
+; X86/64 ALP for 5-digit BCD to HEX conversion
+section .data
+ msg1 db "Enter 5-digit BCD number: "
+ len1 equ $-msg1
+ msg2 db 10,"Equivalent HEX number: "
+ len2 equ $-msg2
+ newline db 10
+section .bss
+ bcd_input resb 6 ; 5 digits + 1 byte for the enter key
+ hex_output resb 8 ; to store the 8 ASCII hex character to print
+section .text
+global _start
+_start:
+;------------------------------------------------------------
+; 1. Print the input message
+;------------------------------------------------------------
+ mov rax,1 ; sys_write
+ mov rdi,1 ; stdout
+ mov rsi,msg1 ; pointer to message
+ mov rdx,len1 ; message length
+ syscall
+;------------------------------------------------------------
+; 2. Read the 5-digit BCD number from the user
+;------------------------------------------------------------
+ mov rax,0 ; sys_read
+ mov rdi,0 ; stdin
+ mov rsi,bcd_input ; pointer to buffer
+ mov rdx,6 ; read 5 character +newline
+ syscall
+;------------------------------------------------------------
+; 3. Convert ASCII BCD to Binary (Decimal value in RAX)
+;------------------------------------------------------------
+ mov rsi,bcd_input ; point RSI to the start of our input
+string
+ mov rcx,5 ; we will process exactly 5 digits
+ xor rax,rax ; RAX will hold our final accumulated
+result (strat at 0)
+ mov rbx,10 ; multiplier (base 10)
+convert_loop:
+ mul rbx ; RAX= RAX*10
+ movzx r8, byte [rsi] ; load the current ASCII character into
+R8 lower
+sub r8,30h ; convert ASCII ('0'-'9') to actual
+value
+ add rax,r8 ; Add the digit to our total accumulator
+ inc rsi ; move to the next character in the
+string
+ loop convert_loop ; decrement RCX and loop until RCX is 0
+;------------------------------------------------------------
+; 4. Print output message
+;------------------------------------------------------------
+ mov r9,rax ; safely store our calculated Hex value
+is R9
+
+ mov rax,1 ; (sys_write will overwrite RAX)
+ mov rdi,1
+ mov rsi,msg2
+ mov rdx,len2
+ syscall
+;------------------------------------------------------------
+; 5. Convert number to HEX/Binary value of ASCII
+;------------------------------------------------------------
+ mov rbx,r9 ;move our result into RBX for manipulation
+ mov rcx,8 ; we will print 8 hex digits (32 bit)
+ mov rdi,hex_output ; pointer to output buffer
+hex_to_ascii_loop:
+ rol ebx,4 ; rotate left 4 bit a bring the higher
+nibble
+ mov al,bl ; copy th lowest bute to AL
+ and al,0Fh ; mask out everything except the lowest 4
+bits
+ cmp al,09h ; check if the digit is 0-9 or A-F
+ jbe add30
+ add al,07h ; If it's A-F, add an extra 7 to bridge
+the ASCII gap
+add30:
+ add al,30h ; add 30h to convert to final ASCII 
+add30:
+ add al,30h ; add 30h to convert to final ASCII
+characte
+ mov [rdi],al ; store the ASCII character in our output
+buffer
+ inc rdi ; move to next byte in buffer
+ loop hex_to_ascii_loop ; repeat for all 8 nibbles
+;------------------------------------------------------------
+; 6. Print HEX result
+;------------------------------------------------------------
+ mov rax,1 ; sys_write
+ mov rdi,1 ; stdout
+ mov rsi,hex_output ; pointer to hex ASCII string
+ mov rdx,8 ; print 8 character
+ syscall
+; Print newline for neatness
+ mov rax,1
+ mov rdi,1
+ mov rsi,newline
+ mov rdx,1
+ syscall
+;------------------------------------------------------------
+; 7. Exit program
+;------------------------------------------------------------
+ mov rax,60 ; sys_exit
+ xor rdi,rdi ; exit code 0
+ syscall
